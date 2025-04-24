@@ -28,14 +28,13 @@ ghibli_style_lora_path = hf_hub_download(repo_id="InstantX/FLUX.1-dev-LoRA-Ghibl
 # init InstantCharacter pipeline
 pipe = InstantCharacterFluxPipeline.from_pretrained(
      base_model,
-     torch_dtype=torch.float16,          # fp16 is enough & a bit smaller
-     device_map="auto",                  # let Accelerate place sub-modules
+     torch_dtype=torch.float16,      # loads on **CPU** by default
      low_cpu_mem_usage=True,
 )
 
-pipe.enable_model_cpu_offload()        # swap inactive blocks to RAM  :contentReference[oaicite:1]{index=1}
-pipe.enable_xformers_memory_efficient_attention()  # halve KV cache  :contentReference[oaicite:2]{index=2}
+pipe.enable_xformers_memory_efficient_attention()   # -1-2 GB KV cache
 pipe.enable_attention_slicing()
+pipe.enable_model_cpu_offload()  
 
 # load InstantCharacter
 pipe.init_adapter(
