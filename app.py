@@ -2,7 +2,8 @@ import torch
 import random
 import numpy as np
 from PIL import Image
-
+import os
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:128"  # keep fragments small
 import gradio as gr
 from huggingface_hub import hf_hub_download
 from transformers import AutoModelForImageSegmentation
@@ -25,8 +26,16 @@ makoto_style_lora_path = hf_hub_download(repo_id="InstantX/FLUX.1-dev-LoRA-Makot
 ghibli_style_lora_path = hf_hub_download(repo_id="InstantX/FLUX.1-dev-LoRA-Ghibli", filename="ghibli_style.safetensors")
 
 # init InstantCharacter pipeline
-pipe = InstantCharacterFluxPipeline.from_pretrained(base_model, torch_dtype=torch.bfloat16)
-pipe.to(device)
+pipe = InstantCharacterFluxPipeline.from_pretrained(
+     base_model,
+     torch_dtype=torch.float16,          # fp16 is enough & a bit smaller
+     device_map="auto",                  # let Accelerate place sub-modules
+     low_cpu_mem_usage=True,
+)
+
+pipe.enable_model_cpu_offload()        # swap inactive blocks to RAM  :contentReference[oaicite:1]{index=1}
+pipe.enable_xformers_memory_efficient_attention()  # halve KV cache  :contentReference[oaicite:2]{index=2}
+pipe.enable_attention_slicing()
 
 # load InstantCharacter
 pipe.init_adapter(
